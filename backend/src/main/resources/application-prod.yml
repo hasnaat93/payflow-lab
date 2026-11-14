@@ -1,0 +1,8 @@
+# Production-style profile: JSON logs for log aggregators, demo reset off by default.
+logging:
+  structured:
+    format:
+      console: ecs
+payflow:
+  demo:
+    reset-enabled: ${DEMO_RESET_ENABLED:false}

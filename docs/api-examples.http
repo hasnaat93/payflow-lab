@@ -1,0 +1,153 @@
+### PayFlow Lab API examples
+### Works with the VS Code "REST Client" extension and the JetBrains HTTP client.
+### Run the requests top to bottom: later ones reuse values captured from earlier ones.
+
+@base = http://localhost:8080/api/v1
+
+### Health
+GET http://localhost:8080/actuator/health
+
+### Simulator notice and rules
+GET {{base}}/demo/status
+
+###
+GET {{base}}/simulator/rules
+
+### List active merchants (pick one from the seeded demo data)
+# @name merchants
+GET {{base}}/merchants?status=ACTIVE&q=northwind
+
+@merchantId = {{merchants.response.body.items[0].id}}
+
+### Authorize a payment of 49.99 USD (approved: ordinary last four)
+# @name authorize
+POST {{base}}/transactions
+Content-Type: application/json
+Idempotency-Key: example-auth-{{$guid}}
+
+{
+  "merchantId": "{{merchantId}}",
+  "amountMinor": 4999,
+  "currency": "USD",
+  "cardBrand": "VISA",
+  "cardLast4": "4242"
+}
+
+@transactionId = {{authorize.response.body.id}}
+
+### A declined authorization (magic last four 0002 = INSUFFICIENT_FUNDS)
+POST {{base}}/transactions
+Content-Type: application/json
+Idempotency-Key: example-decline-{{$guid}}
+
+{
+  "merchantId": "{{merchantId}}",
+  "amountMinor": 2500,
+  "currency": "USD",
+  "cardBrand": "MASTERCARD",
+  "cardLast4": "0002"
+}
+
+### Idempotency: send this twice. The second response is 200 with "Idempotent-Replay: true".
+POST {{base}}/transactions
+Content-Type: application/json
+Idempotency-Key: example-fixed-key-0001
+
+{
+  "merchantId": "{{merchantId}}",
+  "amountMinor": 1200,
+  "currency": "USD",
+  "cardBrand": "VISA",
+  "cardLast4": "4242"
+}
+
+### Capture: assesses the fee and posts to the ledger
+POST {{base}}/transactions/{{transactionId}}/capture
+
+### Capturing again is rejected: 409 INVALID_STATE_TRANSITION
+POST {{base}}/transactions/{{transactionId}}/capture
+
+### Transaction with history, fee breakdown, refunds and journal entries
+GET {{base}}/transactions/{{transactionId}}
+
+### Partial refund of 10.00
+POST {{base}}/transactions/{{transactionId}}/refunds
+Content-Type: application/json
+Idempotency-Key: example-refund-{{$guid}}
+
+{ "amountMinor": 1000, "reason": "item returned" }
+
+### Over-refund is rejected: 422 REFUND_EXCEEDS_CAPTURED
+POST {{base}}/transactions/{{transactionId}}/refunds
+Content-Type: application/json
+Idempotency-Key: example-refund-{{$guid}}
+
+{ "amountMinor": 999999 }
+
+### Search transactions
+GET {{base}}/transactions?status=CAPTURED&size=5&sort=amountMinor,desc
+
+### Fee plans, and a fee preview
+# @name plans
+GET {{base}}/fee-plans
+
+###
+GET {{base}}/fee-plans/{{plans.response.body.0.id}}/preview?amountMinor=10000
+
+### Run settlement (settles everything pending up to today, UTC)
+# @name settle
+POST {{base}}/settlement-batches/run
+Content-Type: application/json
+
+{}
+
+### Settlement batches
+GET {{base}}/settlement-batches?status=COMPLETED&size=5
+
+### Chart of accounts with balances
+GET {{base}}/ledger/accounts
+
+### Journal entries touching Fee Revenue
+GET {{base}}/ledger/journal-entries?accountCode=4000&size=5
+
+### Generate a synthetic statement with anomalies for the last week (adjust the dates)
+# @name statement
+POST {{base}}/reconciliation/statements/generate
+Content-Type: application/json
+
+{ "periodStart": "2026-11-07", "periodEnd": "2026-11-14", "scenario": "WITH_ANOMALIES" }
+
+### Reconcile it
+# @name recon
+POST {{base}}/reconciliation/runs
+Content-Type: application/json
+
+{ "statementId": "{{statement.response.body.id}}" }
+
+### Open exceptions
+# @name exceptions
+GET {{base}}/reconciliation/exceptions?reviewStatus=OPEN
+
+### Review one
+POST {{base}}/reconciliation/exceptions/{{exceptions.response.body.items[0].id}}/review
+Content-Type: application/json
+
+{ "resolutionNote": "Confirmed with the bank; correction expected on the next statement." }
+
+### Dashboard
+GET {{base}}/dashboard/summary?currency=USD
+
+### Report catalogue, one report, and its CSV
+GET {{base}}/reports
+
+###
+GET {{base}}/reports/merchant-performance?currency=USD
+
+###
+GET {{base}}/reports/trial-balance/export?currency=USD
+
+### Audit trail for the transaction
+GET {{base}}/audit-events?entityType=TRANSACTION&entityId={{transactionId}}
+
+### Reset the demo data (only when DEMO_RESET_ENABLED=true)
+POST {{base}}/demo/reset

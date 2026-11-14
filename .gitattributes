@@ -1,0 +1,5 @@
+# Shell scripts and Docker inputs must keep LF endings, including on Windows checkouts.
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.png binary
+*.woff2 binary
