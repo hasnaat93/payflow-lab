@@ -32,6 +32,7 @@ Run on Windows 11, Temurin JDK 21.0.13, Node 24.15, on 2026-11-14.
 | Frontend lint | `npm run lint` | no errors or warnings |
 | Frontend tests | `npm test` | 40 tests passed |
 | Frontend production build | `npm run build` | succeeded |
+| GitHub Actions CI (first push) | backend tests, frontend checks, `docker compose build` | all three jobs passed on Linux |
 
 Defects found by the tests and fixed:
 
@@ -44,8 +45,7 @@ Defects found by the tests and fixed:
 These have been written but not exercised. Treat them as untested until someone runs them.
 
 - **The UI against a live backend in a browser.** The frontend was verified by type checking, linting, component tests with a mocked API, and a production build, but the screens have not been opened and clicked through against the running API. The end-to-end demo walkthrough in the README has therefore not been performed by hand, and layout at desktop and mobile widths has not been inspected.
-- **Docker.** Docker is not installed on the development machine. `docker-compose.yml`, both Dockerfiles and `frontend/nginx.conf` have never been built or run. The CI workflow includes a `docker compose build` job that will exercise the image builds on the first push.
-- **GitHub Actions.** The workflow has not run, because the repository has not been pushed.
+- **Running the Docker stack.** Docker is not installed on the development machine. GitHub Actions builds both images successfully (`docker compose build`), but `docker compose up` has never been run, so the containers, the nginx proxy and the compose wiring are unproven at runtime.
 - **Deployment.** Nothing has been deployed. `docs/deployment.md` is guidance, not a record.
 - **Swagger UI in a browser.** `/v3/api-docs` is asserted by a test; the Swagger UI page itself was not opened.
 
@@ -57,5 +57,5 @@ Listed in the README under "Limitations". None are known defects.
 
 1. Start the app (`./mvnw spring-boot:test-run` and `npm run dev`), walk through the demo, and fix anything the UI gets wrong.
 2. Capture the screenshots listed in the README.
-3. Push to GitHub and confirm all three CI jobs pass, in particular the Docker build.
+3. Run `docker compose up --build` on a machine with Docker and walk through the demo there.
 4. Optionally deploy, following `docs/deployment.md`.
