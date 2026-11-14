@@ -28,15 +28,19 @@ Operations overview · Transactions and payment detail · Merchants · Fee plans
 
 ### Screenshots
 
-Screenshots are not included yet. After starting the app, capture these and place them in `docs/screenshots/`:
+Captured from the running application with the seeded fictional demo data.
 
-| File | Screen |
+| Operations overview | Payment detail with fee breakdown |
 |---|---|
-| `overview.png` | Operations overview (`/`) |
-| `transaction-detail.png` | A captured payment showing the fee breakdown and ledger posting |
-| `settlement-detail.png` | A completed settlement batch |
-| `reconciliation-run.png` | A reconciliation run with exceptions |
-| `reports.png` | A report with "Show SQL" open |
+| ![Operations overview](docs/screenshots/overview.png) | ![Payment detail](docs/screenshots/transaction-detail.png) |
+
+| Settlement batch | Reconciliation run |
+|---|---|
+| ![Settlement batch](docs/screenshots/settlement-detail.png) | ![Reconciliation run](docs/screenshots/reconciliation-run.png) |
+
+| Reports with the SQL shown |
+|---|
+| ![Reports](docs/screenshots/reports.png) |
 
 ## Architecture
 

@@ -11,7 +11,7 @@ Last updated: 2026-11-14
 | 2. Payment lifecycle, simulator, fees, idempotency, history, audit | Done |
 | 3. Double-entry ledger and settlement batching | Done |
 | 4. Reconciliation: statements, matcher, exception queue, review | Done |
-| 5. Frontend: all pages wired to the API | Done (see "Not verified") |
+| 5. Frontend: all pages wired to the API | Done |
 | 6. Integration and quality | Partly done (see below) |
 | 7. Repository documentation, CI, Docker files | Done (see "Not verified") |
 
@@ -32,6 +32,7 @@ Run on Windows 11, Temurin JDK 21.0.13, Node 24.15, on 2026-11-14.
 | Frontend lint | `npm run lint` | no errors or warnings |
 | Frontend tests | `npm test` | 40 tests passed |
 | Frontend production build | `npm run build` | succeeded |
+| UI against the live API, in a headless browser (Edge, 1440x900 and 390x844) | scripted walkthrough: overview and currency filter, merchant, new payment 49.99, capture (fee 1.75, net 48.24), partial refund, blocked over-refund, settlement run and re-run, batch detail, statement generation, reconciliation, exception review, ledger, reports with SQL and CSV, audit, fee plans, about, mobile layouts and menu | 27 of 27 checks passed; no console errors and no failed API calls |
 | GitHub Actions CI (first push) | backend tests, frontend checks, `docker compose build` | all three jobs passed on Linux |
 
 Defects found by the tests and fixed:
@@ -44,10 +45,11 @@ Defects found by the tests and fixed:
 
 These have been written but not exercised. Treat them as untested until someone runs them.
 
-- **The UI against a live backend in a browser.** The frontend was verified by type checking, linting, component tests with a mocked API, and a production build, but the screens have not been opened and clicked through against the running API. The end-to-end demo walkthrough in the README has therefore not been performed by hand, and layout at desktop and mobile widths has not been inspected.
 - **Running the Docker stack.** Docker is not installed on the development machine. GitHub Actions builds both images successfully (`docker compose build`), but `docker compose up` has never been run, so the containers, the nginx proxy and the compose wiring are unproven at runtime.
 - **Deployment.** Nothing has been deployed. `docs/deployment.md` is guidance, not a record.
-- **Swagger UI in a browser.** `/v3/api-docs` is asserted by a test; the Swagger UI page itself was not opened.
+- **Swagger UI in a browser.** `/v3/api-docs` is asserted by a test and `/swagger-ui.html` returns 200, but the page was not looked at.
+- **Hover and keyboard interaction.** The walkthrough clicked through every flow but did not test keyboard-only navigation or chart tooltips.
+- **The browser walkthrough is not in the repository** as an automated test; it was a one-off script.
 
 ## Known limitations
 
@@ -55,7 +57,5 @@ Listed in the README under "Limitations". None are known defects.
 
 ## Next steps
 
-1. Start the app (`./mvnw spring-boot:test-run` and `npm run dev`), walk through the demo, and fix anything the UI gets wrong.
-2. Capture the screenshots listed in the README.
-3. Run `docker compose up --build` on a machine with Docker and walk through the demo there.
-4. Optionally deploy, following `docs/deployment.md`.
+1. Run `docker compose up --build` on a machine with Docker and walk through the demo there.
+2. Optionally deploy, following `docs/deployment.md`.
