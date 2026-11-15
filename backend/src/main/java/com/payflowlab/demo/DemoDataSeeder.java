@@ -160,6 +160,7 @@ public class DemoDataSeeder {
                 if (isToday) {
                     volume = Math.max(2, volume / 2); // today is still in progress
                 }
+                boolean leftOneOpen = false;
                 for (int i = 0; i < volume; i++) {
                     sequence++;
                     int roll = random.nextInt(100);
@@ -189,8 +190,11 @@ public class DemoDataSeeder {
                         clock.at(authTime.plusSeconds(600), () -> transactions.reverse(txn.getId(), null));
                         continue;
                     }
-                    if (isToday && roll >= 90) {
-                        continue; // leave a few of today's authorizations open so there is something to capture
+                    if (isToday && (roll >= 90 || !leftOneOpen)) {
+                        // Leave some of today's authorizations open so there is something to capture:
+                        // always the first for each merchant, so this never depends on the day's volume.
+                        leftOneOpen = true;
+                        continue;
                     }
                     Transaction captured = clock.at(authTime.plusSeconds(90),
                             () -> transactions.capture(txn.getId(), null).transaction());
