@@ -1,0 +1,13 @@
+# Render Blueprint: one free web service running the single-container demo image.
+# Deploy: https://render.com/deploy?repo=https://github.com/hasnaat93/payflow-lab
+#
+# The free plan sleeps after 15 minutes without traffic and wakes on the next request,
+# which takes about a minute. Demo data is recreated on every start.
+services:
+  - type: web
+    name: payflow-lab
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.demo
+    healthCheckPath: /actuator/health
+    autoDeploy: true

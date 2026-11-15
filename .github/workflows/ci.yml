@@ -50,3 +50,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose build
+
+  demo-image:
+    name: Demo image boots and serves within 512 MB
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f Dockerfile.demo -t payflow-lab-demo .
+      - name: Start it the way a small free host would
+        run: docker run -d --name demo --memory=512m --memory-swap=512m --cpus=1 -e PORT=10000 -p 10000:10000 payflow-lab-demo
+      - name: Wait for it to become healthy
+        run: |
+          for i in $(seq 1 80); do
+            if curl -fsS http://localhost:10000/actuator/health | grep -q '"status":"UP"'; then echo "healthy after $((i * 3)) s"; exit 0; fi
+            if [ "$(docker inspect -f '{{.State.Running}}' demo)" != "true" ]; then echo "container exited"; docker logs demo | tail -60; exit 1; fi
+            sleep 3
+          done
+          docker logs demo | tail -80; exit 1
+      - name: Use it
+        run: |
+          set -e
+          base=http://localhost:10000
+          # the single-page app, a deep link into it, and a build asset
+          curl -fsS $base/ | grep -q '<div id="root">'
+          curl -fsS $base/transactions/not-a-file | grep -q '<div id="root">'
+          asset=$(curl -fsS $base/ | grep -o 'assets/[^"]*\.js' | head -1)
+          curl -fsS -o /dev/null $base/$asset
+          # the API behind the same origin, with seeded demo data
+          merchant=$(curl -fsS "$base/api/v1/merchants?size=50" | python3 -c 'import sys, json; print(next(m["id"] for m in json.load(sys.stdin)["items"] if "USD" in m.values() and "ACTIVE" in m.values()))')
+          test -n "$merchant"
+          # an unknown API path is still a JSON 404, not the app shell
+          test "$(curl -s -o /dev/null -w '%{http_code}' $base/api/v1/nowhere)" = "404"
+          curl -fsS $base/v3/api-docs | grep -q '"openapi"'
+          curl -fsS -o /dev/null $base/swagger-ui/index.html
+          # a money-moving request end to end
+          curl -fsS -X POST $base/api/v1/transactions -H 'Content-Type: application/json' -H 'Idempotency-Key: ci-smoke-1' \
+            -d "{\"merchantId\":\"$merchant\",\"amountMinor\":4999,\"currency\":\"USD\",\"cardBrand\":\"VISA\",\"cardLast4\":\"4242\"}" \
+            | python3 -c 'import sys, json; t = json.load(sys.stdin); print(t["status"], t["amountMinor"]); assert t["status"] in ("AUTHORIZED", "DECLINED")'
+          curl -fsS "$base/api/v1/reports/merchant-performance?currency=USD" > /dev/null
+          docker stats --no-stream --format "memory {{.MemUsage}} ({{.MemPerc}})" demo
+          test "$(docker inspect -f '{{.State.OOMKilled}}' demo)" = "false"
+      - name: Logs
+        if: always()
+        run: docker logs demo 2>&1 | tail -40

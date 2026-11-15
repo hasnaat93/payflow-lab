@@ -1,0 +1,8 @@
+# for Dockerfile.demo, which builds from the repository root
+.git
+docs
+**/node_modules
+**/dist
+**/target
+**/coverage
+.idea

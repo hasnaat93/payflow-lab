@@ -1,0 +1,45 @@
+# Single-container demo image: the React app, the API and a private PostgreSQL in one
+# container behind one port. Made for free hosting tiers that give one small container and
+# no managed database. The database is disposable: every start seeds fresh demo data.
+#
+#   docker build -f Dockerfile.demo -t payflow-lab-demo .
+#   docker run --rm -p 8080:8080 --memory=512m payflow-lab-demo
+#
+# For a deployment that keeps its data, use docker-compose.yml (nginx + API + PostgreSQL).
+
+# ---- build the single-page app ----
+FROM node:24-alpine AS web
+WORKDIR /app
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ .
+RUN npm run build
+
+# ---- build the API ----
+FROM eclipse-temurin:21-jdk AS api
+WORKDIR /workspace
+COPY backend/.mvn .mvn
+COPY backend/mvnw backend/pom.xml ./
+RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline
+COPY backend/src src
+RUN ./mvnw -B -q package -DskipTests
+
+# ---- run ----
+FROM postgres:17-bookworm
+COPY --from=eclipse-temurin:21-jre /opt/java/openjdk /opt/java/openjdk
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+WORKDIR /app
+COPY --from=api /workspace/target/payflow-lab-backend-*.jar app.jar
+COPY --from=web /app/dist /app/static
+COPY --chmod=755 deploy/demo-entrypoint.sh /app/demo-entrypoint.sh
+
+# The API serves the app itself here, so no nginx and no CORS: one origin.
+ENV PAYFLOW_SPA_LOCATION=file:/app/static/
+# Sized so the JVM and PostgreSQL fit together in 512 MB.
+ENV JAVA_DEMO_OPTS="-Xmx170m -Xss512k -XX:MaxMetaspaceSize=150m -XX:ReservedCodeCacheSize=40m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:+ExitOnOutOfMemoryError"
+
+# PostgreSQL refuses to run as root; the base image provides this user.
+USER postgres
+EXPOSE 8080
+ENTRYPOINT ["/app/demo-entrypoint.sh"]
