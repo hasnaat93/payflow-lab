@@ -41,12 +41,16 @@ Defects found by the tests and fixed:
 - Two events of one payment could receive the same timestamp on a coarse system clock, leaving their order undefined. The application clock is now strictly monotonic.
 - Hibernate schema validation rejected fixed-width `CHAR` columns; they are now mapped explicitly.
 
+## Found by CI after the first release
+
+- 2026-11-15: `DemoDataIT` failed on a Sunday. The demo seeder left authorizations open only by chance (about one in ten of the current day's payments), and on a low-volume day there were none, so the demo had nothing to capture. The seeder now always leaves the first authorization of each merchant open. The test did its job; the defect was date-dependent.
+
 ## Not verified
 
 These have been written but not exercised. Treat them as untested until someone runs them.
 
-- **Running the Docker stack.** Docker is not installed on the development machine. GitHub Actions builds both images successfully (`docker compose build`), but `docker compose up` has never been run, so the containers, the nginx proxy and the compose wiring are unproven at runtime.
-- **Deployment.** Nothing has been deployed. `docs/deployment.md` is guidance, not a record.
+- **The three-container Docker Compose stack.** Docker is not installed on the development machine. GitHub Actions builds both images (`docker compose build`), but `docker compose up` has never been run, so the nginx proxy and the compose wiring are unproven at runtime. The single-container demo image (`Dockerfile.demo`) is different: CI builds it, starts it with `--memory=512m` and exercises it on every push. On 2026-11-15 it became healthy in 18 seconds, served the app, a deep link, the API and Swagger, authorized a payment, and used 338 MiB.
+- **Deployment.** Nothing is hosted yet. The demo image and `render.yaml` are ready and the image is tested in CI. `docs/deployment.md` is guidance, not a record.
 - **Swagger UI in a browser.** `/v3/api-docs` is asserted by a test and `/swagger-ui.html` returns 200, but the page was not looked at.
 - **Hover and keyboard interaction.** The walkthrough clicked through every flow but did not test keyboard-only navigation or chart tooltips.
 - **The browser walkthrough is not in the repository** as an automated test; it was a one-off script.

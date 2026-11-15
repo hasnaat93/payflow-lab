@@ -105,6 +105,19 @@ npm run dev
 
 The embedded database lives in a temporary directory and is recreated on each start. You can point a SQL client or BI tool at `localhost:54329` (database `postgres`, user `postgres`, no password) to query the tables and `rpt_*` views directly.
 
+### Option 3: one container, for a public demo
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/hasnaat93/payflow-lab)
+
+`Dockerfile.demo` packs the React app, the API and a private PostgreSQL into one container behind one port, for free hosting tiers that offer a single small container and no database. The API serves the app itself, so there is no nginx and no CORS. `render.yaml` describes it for Render. The database is disposable: every start seeds fresh demo data.
+
+```bash
+docker build -f Dockerfile.demo -t payflow-lab-demo .
+docker run --rm -p 8080:8080 --memory=512m payflow-lab-demo     # then open http://localhost:8080
+```
+
+CI builds this image on every push, starts it with a 512 MB memory limit and exercises the app, a deep link, the API and Swagger.
+
 ### Reset the demo data
 
 One command, or the **Reset demo data** button on the About page:
